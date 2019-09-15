@@ -265,19 +265,16 @@ void PipeState::pipeStageExecute()
     /* grab op and read sources */
     Pipe_Op *op = execute_op;
 
-    /* read register values, and check for bypass; stall if necessary */
+    /* read register values, stall if necessary */
     int stall = 0;
     if (op->reg_src1 != -1) {
         if (op->reg_src1 == 0)
             op->reg_src1_value = 0;
         else if (mem_op && mem_op->reg_dst == op->reg_src1) {
-            if (!mem_op->reg_dst_value_ready)
-                stall = 1;
-            else
-                op->reg_src1_value = mem_op->reg_dst_value;
+        	stall = 1;
         }
         else if (wb_op && wb_op->reg_dst == op->reg_src1) {
-            op->reg_src1_value = wb_op->reg_dst_value;
+        	stall = 1;
         }
         else
             op->reg_src1_value = REGS[op->reg_src1];
@@ -286,20 +283,16 @@ void PipeState::pipeStageExecute()
         if (op->reg_src2 == 0)
             op->reg_src2_value = 0;
         else if (mem_op && mem_op->reg_dst == op->reg_src2) {
-            if (!mem_op->reg_dst_value_ready)
-                stall = 1;
-            else
-                op->reg_src2_value = mem_op->reg_dst_value;
+        	stall = 1;
         }
         else if (wb_op && wb_op->reg_dst == op->reg_src2) {
-            op->reg_src2_value = wb_op->reg_dst_value;
+        	stall = 1;
         }
         else
             op->reg_src2_value = REGS[op->reg_src2];
     }
 
-    /* if bypassing requires a stall (e.g. use immediately after load),
-     * return without clearing stage input */
+    /* if requires a stall return without clearing stage input */
     if (stall) 
         return;
 
