@@ -6,28 +6,48 @@
 
 #ifndef SRC_SIMULATOR_H_
 #define SRC_SIMULATOR_H_
-//todo
-//#include "cache.h"
+
 #include "base_memory.h"
 #include "pipe.h"
 #include "util.h"
+
 class Simulator {
 public:
 	Simulator(MemHrchyInfo* info);
 	virtual ~Simulator();
 	PipeState * pipe;
-//	Cache * l1i_cache;
-//	Cache * l1d_cache;
-//	Cache * l2_cache;
 	BaseMemory * main_memory;
 
+	/*
+	 * Execute a cycle
+	 */
 	void cycle();
+
+	/*
+	 * Simulation for n cycles
+	 */
 	void run(int num_cycles);
+
+	/*
+	 * Simulation until HALTed
+	 */
 	void go();
 
-	//debug
+	// Debug functions
+
+	/*
+	 * Read a 32-bit word from memory for memDump
+	 */
 	uint32_t readMemForDump(uint32_t address);
+
+	/*
+	 * Print architectural registers and other stats
+	 */
 	void registerDump();
+
+	/*
+	 * Print a word-aligned region of memory to the output file
+	 */
 	void memDump(int start, int stop);
 
 

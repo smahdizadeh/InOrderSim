@@ -171,7 +171,7 @@ void PipeState::pipeStageMem()
         case OP_LBU:
             {
             	uint32_t val;
-            	std::cerr << "Inst : " << std::hex << op->instruction << std::dec << "\n";
+//            	std::cerr << "Inst : " << std::hex << op->instruction << std::dec << "\n";
             	memory_stall = data_mem->read((op->mem_addr & ~3),
             			4, (uint8_t*) &val) - 1;
                 /* extract needed value */

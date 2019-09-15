@@ -90,15 +90,20 @@ public:
 
     /* multiplier stall info */
     int multiplier_stall; /* number of remaining cycles until HI/LO are ready */
-    /*memory access stall info */
+
+    /*data memory access stall info */
     int memory_stall;
 
+    /*instruction memory access stall info */
     int fetch_stall;
 
+    /* */
     int RUN_BIT;
+
     /*pointer to the first level of memory hierarchy*/
 	AbstractMemory* data_mem;
 	AbstractMemory* inst_mem;
+
 	/*statistics*/
 	uint32_t stat_cycles;
 	uint32_t stat_inst_retire;

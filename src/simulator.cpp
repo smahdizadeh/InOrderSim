@@ -15,26 +15,15 @@ Simulator::Simulator(MemHrchyInfo* info){
 	pipe = new PipeState();
 
 	//initializing memory hierarchy
-//	l1i_cache = new Cache(info->cache_size_l1, info->cache_assoc_l1,
-//			info->cache_blk_size, info->repl_policy_l1i, info->access_delay_l1);
-//	l1d_cache = new Cache(info->cache_size_l1, info->cache_assoc_l1,
-//			info->cache_blk_size, info->repl_policy_l1d, info->access_delay_l1);
-//	l2_cache = new Cache(info->cache_size_l2, info->cache_assoc_l2,
-//			info->cache_blk_size, info->repl_policy_l2, info->access_delay_l2);
 	main_memory = new BaseMemory(info->read_delay_mem,
 			info->write_delay_mem);
-//	l1d_cache->next = l2_cache;
-//	l1i_cache->next = l2_cache;
-//	l2_cache->next = main_memory;
 	main_memory->next = nullptr;
+
 	//set the first memory in the memory-hierarchy
 	pipe->data_mem = main_memory;
 	pipe->inst_mem = main_memory;
 }
 
-/***************************************************************/
-/*            Execute a cycle                                   /*
-/***************************************************************/
 void Simulator::cycle() {
   std::cerr<<"cycle:"<<pipe->stat_cycles<<"\n";
   pipe->pipeCycle();
@@ -42,9 +31,6 @@ void Simulator::cycle() {
 }
 
 
-/***************************************************************/
-/*            Simulation for n cycles                           /*
-/***************************************************************/
 void Simulator::run(int num_cycles) {
   int i;
 
@@ -64,9 +50,6 @@ void Simulator::run(int num_cycles) {
 }
 
 
-/***************************************************************/
-/*           Simulation until HALTed                            /*
-/***************************************************************/
 void Simulator::go() {
   if (pipe->RUN_BIT == false) {
     printf("Can't simulate, Simulator is halted\n\n");
@@ -80,13 +63,7 @@ void Simulator::go() {
 }
 
 
-/***************************************************************/
-/*                                                             */
-/* Procedure: readMemForDump                                   */
-/*                                                             */
-/* Purpose: Read a 32-bit word from memory for memDump         */
-/*                                                             */
-/***************************************************************/
+
 uint32_t Simulator::readMemForDump(uint32_t address)
 {
     int i;
@@ -106,13 +83,7 @@ uint32_t Simulator::readMemForDump(uint32_t address)
     return 0;
 }
 
-/***************************************************************/
-/*                                                             */
-/* Procedure : registerDump                                    */
-/*                                                             */
-/* Purpose   : Dump architectural registers and other stats    */
-/*                                                             */
-/***************************************************************/
+
 void Simulator::registerDump() {
     int i;
 
@@ -132,22 +103,14 @@ void Simulator::registerDump() {
 }
 
 
-
-/***************************************************************/
-/*                                                             */
-/* Procedure : memDump                                         */
-/*                                                             */
-/* Purpose   : Dump a word-aligned region of memory to the     */
-/*             output file.                                    */
-/*                                                             */
-/***************************************************************/
 void Simulator::memDump(int start, int stop) {
   int address;
 
   printf("\nMemory content [0x%08x..0x%08x] :\n", start, stop);
   printf("-------------------------------------\n");
-  for (address = start; address <= stop; address += 4)
+  for (address = start; address <= stop; address += 4){
     printf("  0x%08x (%d) : 0x%08x\n", address, address, readMemForDump(address));
+  }
   printf("\n");
 }
 
@@ -156,9 +119,6 @@ void Simulator::memDump(int start, int stop) {
 
 Simulator::~Simulator() {
 	delete main_memory;
-//	delete l2_cache;
-//	delete l1d_cache;
-//	delete l1i_cache;
 	delete pipe;
 }
 
