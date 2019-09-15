@@ -30,15 +30,23 @@ void printOp(Pipe_Op *op)
 PipeState::PipeState() : fetch_op(nullptr), decode_op(nullptr), execute_op(nullptr),
 		mem_op(nullptr), wb_op(nullptr), data_mem(nullptr), inst_mem(nullptr),
 		HI(0), LO(0), branch_recover(0),branch_dest(0), branch_flush(0),
-		multiplier_stall(0), memory_stall(0), fetch_stall(0), RUN_BIT(true), stat_cycles(0),
+		RUN_BIT(true), stat_cycles(0),
 		stat_inst_retire(0), stat_inst_fetch(0), stat_squash(0)
 {
-	fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-	memset(fetch_op, 0, sizeof(Pipe_Op));
+//	fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
+//	memset(fetch_op, 0, sizeof(Pipe_Op));
 	for(int i=0; i<32; i++){
 		REGS[i]=0;
 	}
     PC = 0x00400000;
+}
+
+PipeState::~PipeState() {
+	if(fetch_op) free(fetch_op);
+	if(decode_op) free(decode_op);
+	if(execute_op) free(execute_op);
+	if(mem_op) free(mem_op);
+	if(wb_op) free(wb_op);
 }
 
 void PipeState::pipeCycle()
@@ -53,6 +61,8 @@ void PipeState::pipeCycle()
 #endif
 
     pipeStageWb();
+//    if(RUN_BIT == false)
+//    	return;
     pipeStageMem();
     pipeStageExecute();
     pipeStageDecode();
@@ -66,6 +76,12 @@ void PipeState::pipeCycle()
 
         PC = branch_dest;
 
+		if (branch_flush >= 1) {
+			if (fetch_op) free(fetch_op);
+//			fetch_stall = 0;
+			fetch_op = nullptr;
+        }
+
         if (branch_flush >= 2) {
             if (decode_op) free(decode_op);
             decode_op = nullptr;
@@ -78,6 +94,7 @@ void PipeState::pipeCycle()
 
         if (branch_flush >= 4) {
             if (mem_op) free(mem_op);
+//            memory_stall = 0;
             mem_op = nullptr;
         }
 
@@ -100,7 +117,6 @@ void PipeState::pipeRecover(int flush, uint32_t dest)
      * stage (which executes older instructions), hence that recovery overrides
      * our recovery. Simply return in this case. */
     if (branch_recover) return;
-
     /* schedule the recovery. This will be done once all pipeline stages simulate the current cycle. */
     branch_recover = 1;
     branch_flush = flush;
@@ -124,7 +140,6 @@ void PipeState::pipeStageWb()
         printf("R%d = %08x\n", op->reg_dst, op->reg_dst_value);
 #endif
     }
-
     /* if this was a syscall, perform action */
     if (op->opcode == OP_SPECIAL && op->subop == SUBOP_SYSCALL) {
         if (op->reg_src1_value == 0xA) {
@@ -154,9 +169,9 @@ void PipeState::pipeStageMem()
     	return;
     }
 
-    if(memory_stall > 0) {
-    	memory_stall--;
-    	if(memory_stall == 0) {
+    if(op->stall > 0) {
+    	op->stall--;
+    	if(op->stall == 0) {
     	    mem_op = NULL;
     	    wb_op = op;
     	}
@@ -171,8 +186,7 @@ void PipeState::pipeStageMem()
         case OP_LBU:
             {
             	uint32_t val;
-//            	std::cerr << "Inst : " << std::hex << op->instruction << std::dec << "\n";
-            	memory_stall = data_mem->read((op->mem_addr & ~3),
+            	op->stall = data_mem->read((op->mem_addr & ~3),
             			4, (uint8_t*) &val) - 1;
                 /* extract needed value */
                 op->reg_dst_value_ready = 1;
@@ -219,7 +233,7 @@ void PipeState::pipeStageMem()
         case OP_SB:
         {
         	uint8_t written_val = op->mem_value & 0xFF;
-        	memory_stall = data_mem->write(op->mem_addr,
+        	op->stall = data_mem->write(op->mem_addr,
         			1, &written_val) - 1;
             break;
         }
@@ -227,7 +241,7 @@ void PipeState::pipeStageMem()
         case OP_SH:
         {
             uint16_t written_val = op->mem_value & 0xFFFF;
-            memory_stall = data_mem->write(op->mem_addr,
+            op->stall = data_mem->write(op->mem_addr,
             		2, (uint8_t*) &written_val) - 1;
             break;
         }
@@ -235,13 +249,13 @@ void PipeState::pipeStageMem()
         case OP_SW:
         {
         	uint32_t written_val = op->mem_value;
-        	memory_stall = data_mem->write(op->mem_addr,
+        	op->stall = data_mem->write(op->mem_addr,
         			4, (uint8_t*) &written_val) - 1;
             break;
         }
     }
 
-    if(memory_stall == 0) {
+    if(op->stall == 0) {
     	mem_op = NULL;
     	wb_op = op;
     }
@@ -251,8 +265,8 @@ void PipeState::pipeStageMem()
 void PipeState::pipeStageExecute()
 {
     /* if a multiply/divide is in progress, decrement cycles until value is ready */
-    if (multiplier_stall > 0)
-        multiplier_stall--;
+    if (execute_op && execute_op->stall > 0)
+    	execute_op->stall--;
 
     /* if downstream stall, return (and leave any input we had) */
     if (mem_op != NULL)
@@ -295,7 +309,6 @@ void PipeState::pipeStageExecute()
     /* if requires a stall return without clearing stage input */
     if (stall) 
         return;
-
     /* execute the op */
     switch (op->opcode) {
         case OP_SPECIAL:
@@ -341,7 +354,7 @@ void PipeState::pipeStageExecute()
                         LO = (uval >>  0) & 0xFFFFFFFF;
 
                         /* four-cycle multiplier latency */
-                        multiplier_stall = 4;
+                        op->stall = 4;
                     }
                     break;
                 case SUBOP_MULTU:
@@ -351,7 +364,7 @@ void PipeState::pipeStageExecute()
                         LO = (val >>  0) & 0xFFFFFFFF;
 
                         /* four-cycle multiplier latency */
-                        multiplier_stall = 4;
+                        op->stall = 4;
                     }
                     break;
 
@@ -373,7 +386,7 @@ void PipeState::pipeStageExecute()
                     }
 
                     /* 32-cycle divider latency */
-                    multiplier_stall = 32;
+                    op->stall = 32;
                     break;
 
                 case SUBOP_DIVU:
@@ -386,19 +399,19 @@ void PipeState::pipeStageExecute()
                     }
 
                     /* 32-cycle divider latency */
-                    multiplier_stall = 32;
+                    op->stall = 32;
                     break;
 
                 case SUBOP_MFHI:
                     /* stall until value is ready */
-                    if (multiplier_stall > 0)
+                    if (op->stall > 0)
                         return;
 
                     op->reg_dst_value = HI;
                     break;
                 case SUBOP_MTHI:
                     /* stall to respect WAW dependence */
-                    if (multiplier_stall > 0)
+                    if (op->stall > 0)
                         return;
 
                     HI = op->reg_src1_value;
@@ -406,14 +419,14 @@ void PipeState::pipeStageExecute()
 
                 case SUBOP_MFLO:
                     /* stall until value is ready */
-                    if (multiplier_stall > 0)
+                    if (op->stall > 0)
                         return;
 
                     op->reg_dst_value = LO;
                     break;
                 case SUBOP_MTLO:
                     /* stall to respect WAW dependence */
-                    if (multiplier_stall > 0)
+                    if (op->stall > 0)
                         return;
 
                     LO = op->reg_src1_value;
@@ -680,28 +693,30 @@ void PipeState::pipeStageFetch()
     if (decode_op != NULL)
 		return;
 
-	if (fetch_stall > 0) {
-		fetch_stall--;
-		if (fetch_stall == 0) {
+	if (fetch_op && fetch_op->stall > 0) {
+		fetch_op->stall--;
+		if (fetch_op->stall == 0) {
 			PC += 4;
 			decode_op = fetch_op;
-			fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-			memset(fetch_op, 0, sizeof(Pipe_Op));
+			fetch_op = nullptr;
+//			fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
+//			memset(fetch_op, 0, sizeof(Pipe_Op));
 			stat_inst_fetch++;
 		}
 		return;
 	}
-	assert(fetch_op != nullptr);
+
+	assert(fetch_op == nullptr);
+	fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
+	memset(fetch_op, 0, sizeof(Pipe_Op));
 
 	fetch_op->reg_src1 = fetch_op->reg_src2 = fetch_op->reg_dst = -1;
     fetch_op->pc = PC;
-    fetch_stall = inst_mem->read(PC, 4, (uint8_t*) &(fetch_op->instruction)) - 1;
-    std::cerr << "fetch_stall " << fetch_stall << "\n";
-    if(fetch_stall == 0) {
+    fetch_op->stall = inst_mem->read(PC, 4, (uint8_t*) &(fetch_op->instruction)) - 1;
+    if(fetch_op->stall == 0) {
     	PC += 4;
     	decode_op = fetch_op;
-    	memset(fetch_op, 0, sizeof(Pipe_Op));
+    	fetch_op = nullptr;
     	stat_inst_fetch++;
     }
-
 }

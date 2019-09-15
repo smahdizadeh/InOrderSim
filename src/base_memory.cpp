@@ -27,6 +27,8 @@ BaseMemory::BaseMemory(uint32_t mem_read_delay, uint32_t mem_write_delay)
 
 BaseMemory::~BaseMemory() {
 	// TODO Auto-generated destructor stub
+	for (int i = 0; i < MEM_NREGIONS; i++)
+		free(MEM_REGIONS[i].mem);
 }
 
 uint32_t

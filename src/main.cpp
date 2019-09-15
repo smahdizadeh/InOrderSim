@@ -61,6 +61,7 @@ MemHrchyInfo* getMemHrchyInfo(char* config_file) {
 	while (fscanf(config, "%s\n", line) != EOF) {
 		str.append(line);
 	}
+	fclose(config);
 	ConfigReader msg;
 	msg.setJson(str);
 	std::cerr << "Config file is read successfully\n";
@@ -209,6 +210,8 @@ void loadProgram(char *program_filename) {
 		writeProgramToMem(MEM_TEXT_START + ii, word);
 		ii += 4;
 	}
+
+	fclose(prog);
 
 	printf("Read %d words from program into memory.\n\n", ii / 4);
 }

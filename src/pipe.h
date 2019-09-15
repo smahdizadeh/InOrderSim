@@ -56,6 +56,7 @@ typedef struct Pipe_Op {
     int is_link;          /* jump-and-link or branch-and-link inst? */
     int link_reg;         /* register to place link into? */
 
+    int stall;
 } Pipe_Op;
 
 /* The pipe state represents the current state of the pipeline. It holds a
@@ -70,7 +71,7 @@ typedef struct Pipe_Op {
 class PipeState {
 public:
 	PipeState();
-	~PipeState() {}
+	~PipeState();
     /* pipe op currently at the input of the given stage (NULL for none) */
     Pipe_Op *fetch_op, *decode_op, *execute_op, *mem_op, *wb_op;
 
@@ -88,14 +89,14 @@ public:
     uint32_t branch_dest; /* next fetch will be from this PC */
     int branch_flush; /* how many stages to flush during recover? (1 = fetch, 2 = fetch/decode, ...) */
 
-    /* multiplier stall info */
-    int multiplier_stall; /* number of remaining cycles until HI/LO are ready */
-
-    /*data memory access stall info */
-    int memory_stall;
-
-    /*instruction memory access stall info */
-    int fetch_stall;
+//    /* multiplier stall info */
+//    int multiplier_stall; /* number of remaining cycles until HI/LO are ready */
+//
+//    /*data memory access stall info */
+//    int memory_stall;
+//
+//    /*instruction memory access stall info */
+//    int fetch_stall;
 
     /* */
     int RUN_BIT;

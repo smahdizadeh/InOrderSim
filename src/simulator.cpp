@@ -25,7 +25,6 @@ Simulator::Simulator(MemHrchyInfo* info){
 }
 
 void Simulator::cycle() {
-  std::cerr<<"cycle:"<<pipe->stat_cycles<<"\n";
   pipe->pipeCycle();
   pipe->stat_cycles++;
 }
@@ -33,7 +32,6 @@ void Simulator::cycle() {
 
 void Simulator::run(int num_cycles) {
   int i;
-
   if (pipe->RUN_BIT == false) {
     printf("Can't simulate, Simulator is halted\n\n");
     return;
@@ -121,4 +119,3 @@ Simulator::~Simulator() {
 	delete main_memory;
 	delete pipe;
 }
-
