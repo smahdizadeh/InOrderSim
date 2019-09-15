@@ -1,0 +1,14 @@
+{
+	"cache_size_l1": 32768,
+	"cache_assoc_l1": 4,
+	"cache_size_l2": 2097152,
+	"cache_assoc_l2": 16,
+	"cache_blk_size": 64,
+	"repl_policy_l1i": 0,
+	"repl_policy_l1d": 0,
+	"repl_policy_l2": 0,
+	"access_delay_l1": 2,
+	"access_delay_l2": 2,
+	"read_delay_mem": 2,
+	"write_delay_mem": 2
+}
