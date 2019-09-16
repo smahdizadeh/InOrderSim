@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-# Chris Fallin, 2012
-# Yoongu Kim, 2013
-# Juan Gomez Luna, 2017
 
 import sys, os, subprocess, re, glob, argparse
 
