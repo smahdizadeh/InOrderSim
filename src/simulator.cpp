@@ -64,21 +64,9 @@ void Simulator::go() {
 
 uint32_t Simulator::readMemForDump(uint32_t address)
 {
-    int i;
-    for (i = 0; i < MEM_NREGIONS; i++) {
-        if (address >= main_memory->MEM_REGIONS[i].start &&
-                address < (main_memory->MEM_REGIONS[i].start + main_memory->MEM_REGIONS[i].size)) {
-            uint32_t offset = address - main_memory->MEM_REGIONS[i].start;
-
-            return
-                (main_memory->MEM_REGIONS[i].mem[offset+3] << 24) |
-                (main_memory->MEM_REGIONS[i].mem[offset+2] << 16) |
-                (main_memory->MEM_REGIONS[i].mem[offset+1] <<  8) |
-                (main_memory->MEM_REGIONS[i].mem[offset+0] <<  0);
-        }
-    }
-
-    return 0;
+	uint32_t data;
+	pipe->data_mem->read(address, 4, (uint8_t*)&data);
+    return data;
 }
 
 
@@ -106,8 +94,9 @@ void Simulator::memDump(int start, int stop) {
 
   printf("\nMemory content [0x%08x..0x%08x] :\n", start, stop);
   printf("-------------------------------------\n");
-  for (address = start; address <= stop; address += 4){
-    printf("  0x%08x (%d) : 0x%08x\n", address, address, readMemForDump(address));
+  for (address = start; address < stop; address += 4){
+    printf("MEM: 0x%08x <- 0x%08x (%d)\n", readMemForDump(address), address, address);
+//	  printf("MEM: 0x%08x\n", readMemForDump(address));
   }
   printf("\n");
 }

@@ -38,6 +38,7 @@ def main():
             r0 = r.split()[0]
             r1 = r.split()[1]
             s1 = s.split()[1]
+            print (r1, s1)
 
             print "  " + r0.ljust(14) + r1.center(14) + s1.center(14),
 
@@ -50,7 +51,7 @@ def main():
 	        print
 
         if error == 0:
-	    print "  " + green + "REGISTER CONTENTS OK" + normal
+	    print "  " + green + "REGISTER AND MEMORY CONTENTS OK" + normal
 	print
 
 
@@ -62,19 +63,23 @@ def run(config, i):
 
     cmds = ""
     cmdfile = os.path.splitext(i)[0] + ".cmd"
+    memfile = os.path.splitext(i)[0] + ".mem"
     if os.path.exists(cmdfile):
       cmds += open(cmdfile).read()
 
-    cmds += "\ngo\nrdump\nquit\n"
+    cmds += "\ngo\nrdump\n"
+    if os.path.exists(memfile):
+      cmds += open(memfile).read()
+    cmds += "quit\n"
     (r, r_err) = refproc.communicate(input=cmds)
     (s, s_err) = simproc.communicate(input=cmds)
-
+    
     return filter_stats(r), filter_stats(s)
 
 
 def filter_stats(out):
     lines = out.split("\n")
-    regex = re.compile("^(HI:)|(LO:)|(R\d+:)|(PC:)|(Cycles:)|(Fetched\w+:)|(Retired\w+:)|(IPC:)|(Flushes:).*$")
+    regex = re.compile("^(HI:)|(LO:)|(R\d+:)|(PC:)|(Cycles:)|(Fetched\w+:)|(Retired\w+:)|(IPC:)|(MEM:)|(Flushes:).*$")
     out = []
     for l in lines:
         if regex.match(l):

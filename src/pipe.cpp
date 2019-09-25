@@ -7,6 +7,7 @@
 #include "pipe.h"
 #include "mips.h"
 #include "base_memory.h"
+#include "static_nt_branch_predictor.h"
 #include <cstdio>
 #include <iostream>
 #include <cstring>
@@ -39,6 +40,7 @@ PipeState::PipeState() : fetch_op(nullptr), decode_op(nullptr), execute_op(nullp
 		REGS[i]=0;
 	}
     PC = 0x00400000;
+    BP = new StaticNTBranchPredictor();
 }
 
 PipeState::~PipeState() {
@@ -47,6 +49,7 @@ PipeState::~PipeState() {
 	if(execute_op) free(execute_op);
 	if(mem_op) free(mem_op);
 	if(wb_op) free(wb_op);
+	delete BP;
 }
 
 void PipeState::pipeCycle()
@@ -78,7 +81,6 @@ void PipeState::pipeCycle()
 
 		if (branch_flush >= 1) {
 			if (fetch_op) free(fetch_op);
-//			fetch_stall = 0;
 			fetch_op = nullptr;
         }
 
@@ -696,11 +698,9 @@ void PipeState::pipeStageFetch()
 	if (fetch_op && fetch_op->stall > 0) {
 		fetch_op->stall--;
 		if (fetch_op->stall == 0) {
-			PC += 4;
+			PC = BP->getTarget(PC);
 			decode_op = fetch_op;
 			fetch_op = nullptr;
-//			fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-//			memset(fetch_op, 0, sizeof(Pipe_Op));
 			stat_inst_fetch++;
 		}
 		return;
@@ -714,7 +714,7 @@ void PipeState::pipeStageFetch()
     fetch_op->pc = PC;
     fetch_op->stall = inst_mem->read(PC, 4, (uint8_t*) &(fetch_op->instruction)) - 1;
     if(fetch_op->stall == 0) {
-    	PC += 4;
+    	PC = BP->getTarget(PC);
     	decode_op = fetch_op;
     	fetch_op = nullptr;
     	stat_inst_fetch++;

@@ -9,6 +9,7 @@
 
 #include <cstdint>
 #include "abstract_memory.h"
+#include "abstarct_branch_predictor.h"
 
 
 /* Pipeline ops (instances of this structure) are high-level representations of
@@ -74,6 +75,7 @@ public:
 	~PipeState();
     /* pipe op currently at the input of the given stage (NULL for none) */
     Pipe_Op *fetch_op, *decode_op, *execute_op, *mem_op, *wb_op;
+    AbstarctBranchPredictor* BP;
 
     /* register file state */
     uint32_t REGS[32];
