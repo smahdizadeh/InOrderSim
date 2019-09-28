@@ -77,8 +77,7 @@ MemHrchyInfo* getMemHrchyInfo(char* config_file) {
 	info->repl_policy_l2 = msg.getValue("repl_policy_l2").asInt();
 	info->access_delay_l1 = msg.getValue("access_delay_l1").asInt();
 	info->access_delay_l2 = msg.getValue("access_delay_l2").asInt();
-	info->read_delay_mem = msg.getValue("read_delay_mem").asInt();
-	info->write_delay_mem = msg.getValue("write_delay_mem").asInt();
+	info->memDelay = msg.getValue("memDelay").asInt();
 	return info;
 }
 

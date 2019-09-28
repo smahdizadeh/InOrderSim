@@ -4,12 +4,13 @@
  * PSU
  */
 
-#ifndef _PIPE_H_
-#define _PIPE_H_
+#ifndef __PIPE_H__
+#define __PIPE_H__
 
 #include <cstdint>
 #include "abstract_memory.h"
 #include "abstarct_branch_predictor.h"
+#include "base_object.h"
 
 
 /* Pipeline ops (instances of this structure) are high-level representations of
@@ -56,8 +57,17 @@ typedef struct Pipe_Op {
                              for unconditional, execute for conditional) */
     int is_link;          /* jump-and-link or branch-and-link inst? */
     int link_reg;         /* register to place link into? */
-
+    //multiplier stall info
     int stall;
+
+    bool isFetchIssued;
+    Packet* instFetchPkt;
+
+    bool waitOnPktIssue;
+    bool memTried;
+    Packet* memPkt;
+
+    bool readyForNextStage;
 } Pipe_Op;
 
 /* The pipe state represents the current state of the pipeline. It holds a
@@ -69,7 +79,7 @@ typedef struct Pipe_Op {
  * be lost).
  */
 
-class PipeState {
+class PipeState : public BaseObject {
 public:
 	PipeState();
 	~PipeState();
@@ -90,16 +100,6 @@ public:
     int branch_recover; /* set to '1' to load a new PC */
     uint32_t branch_dest; /* next fetch will be from this PC */
     int branch_flush; /* how many stages to flush during recover? (1 = fetch, 2 = fetch/decode, ...) */
-
-//    /* multiplier stall info */
-//    int multiplier_stall; /* number of remaining cycles until HI/LO are ready */
-//
-//    /*data memory access stall info */
-//    int memory_stall;
-//
-//    /*instruction memory access stall info */
-//    int fetch_stall;
-
     /* */
     int RUN_BIT;
 
@@ -132,6 +132,8 @@ public:
     void pipeStageMem();
     void pipeStageWb();
 
+	virtual bool sendReq(Packet * pkt) override;
+	virtual void recvResp(Packet* readRespPkt) override;
 };
 
 #endif

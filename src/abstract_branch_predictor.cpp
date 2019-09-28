@@ -4,14 +4,14 @@
  * PSU
  */
 
-#include "abstarct_branch_predictor.h"
+#include "abstract_branch_predictor.h"
 
-AbstarctBranchPredictor::AbstarctBranchPredictor() {
+AbstractBranchPredictor::AbstractBranchPredictor() {
 	// TODO Auto-generated constructor stub
 
 }
 
-AbstarctBranchPredictor::~AbstarctBranchPredictor() {
+AbstractBranchPredictor::~AbstractBranchPredictor() {
 	// TODO Auto-generated destructor stub
 }
 

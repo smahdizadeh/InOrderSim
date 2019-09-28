@@ -4,13 +4,12 @@
  * PSU
  */
 
-#ifndef SRC_BASE_MEMORY_H_
-#define SRC_BASE_MEMORY_H_
+#ifndef __BASE_MEMORY_H__
+#define __BASE_MEMORY_H__
 #include <cstdint>
 #include <cstdlib>
 #include <assert.h>
 #include "abstract_memory.h"
-
 
 #define MEM_DATA_START  0x10000000
 #define MEM_DATA_SIZE   0x00100000
@@ -24,28 +23,22 @@
 #define MEM_KTEXT_SIZE  0x00100000
 #define MEM_NREGIONS 5
 
-
 typedef struct {
-    uint32_t start, size;
-    uint8_t *mem;
+	uint32_t start, size;
+	uint8_t *mem;
 } mem_region_t;
-
-
-
 
 class BaseMemory: public AbstractMemory {
 public:
-	BaseMemory(uint32_t mem_read_delay, uint32_t mem_write_delay);
+	BaseMemory(uint32_t mem_delay);
 	virtual ~BaseMemory();
-	virtual uint32_t read(uint32_t addr, uint32_t size, uint8_t* data) override;
-	virtual uint32_t write(uint32_t addr, uint32_t size, uint8_t* data) override;
+	virtual bool sendReq(Packet * pkt) override;
+	virtual void recvResp(Packet* readRespPkt) override;
 	mem_region_t* getMemRegion(uint32_t addr, uint32_t size);
-	uint32_t mem_read_delay;
-	uint32_t mem_write_delay;
-
-
+	virtual void Tick() override;
 	mem_region_t MEM_REGIONS[MEM_NREGIONS];
 
+	void dumpRead(uint32_t addr, uint32_t size, uint8_t* data);
 };
 
-#endif /* SRC_BASE_MEMORY_H_ */
+#endif

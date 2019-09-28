@@ -1,5 +1,5 @@
-#ifndef _MIPS_H_
-#define _MIPS_H_
+#ifndef __MIPS_H__
+#define __MIPS_H__
 
 /* special sub-opcodes (opcode=0) */
 #define OP_SPECIAL 0x00

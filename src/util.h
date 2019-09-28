@@ -4,8 +4,8 @@
  * PSU
  */
 
-#ifndef SRC_UTIL_H_
-#define SRC_UTIL_H_
+#ifndef __UTIL_H__
+#define __UTIL_H__
 #include <cstdint>
 struct MemHrchyInfo{
 	uint64_t cache_size_l1;
@@ -19,14 +19,23 @@ struct MemHrchyInfo{
 	int repl_policy_l2;
 	uint64_t access_delay_l1;
 	uint32_t access_delay_l2;
-	uint32_t read_delay_mem;
-	uint32_t write_delay_mem;
+	uint32_t memDelay;
 };
 
 enum ReplacementPolicy{
-	LRU
+	RandomReplPolicy,
+	LRUReplPolicy
+};
+
+enum PacketSrcType {
+	PacketTypeFetch = 0,
+	PacketTypeLoad = 1,
+	PacketTypeStore = 2,
+	PacketTypePrefetch = 3
 };
 
 
+uint64_t extern currCycle;
 
-#endif /* SRC_UTIL_H_ */
+
+#endif

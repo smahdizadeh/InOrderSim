@@ -4,16 +4,16 @@
  * PSU
  */
 
-#ifndef SRC_ABSTARCT_BRANCH_PREDICTOR_H_
-#define SRC_ABSTARCT_BRANCH_PREDICTOR_H_
+#ifndef __ABSTRACT_BRANCH_PREDICTOR_H__
+#define __ABSTRACT_BRANCH_PREDICTOR_H__
 #include <cstdint>
 
-class AbstarctBranchPredictor {
+class AbstractBranchPredictor {
 public:
-	AbstarctBranchPredictor();
-	virtual ~AbstarctBranchPredictor();
+	AbstractBranchPredictor();
+	virtual ~AbstractBranchPredictor();
 	virtual uint32_t getTarget(uint32_t PC) = 0;
 	virtual void update(uint32_t PC, bool taken, uint32_t target) = 0;
 };
 
-#endif /* SRC_ABSTARCT_BRANCH_PREDICTOR_H_ */
+#endif

@@ -4,8 +4,8 @@
  * PSU
  */
 
-#ifndef SRC_SIMULATOR_H_
-#define SRC_SIMULATOR_H_
+#ifndef __SIMULATOR_H__
+#define __SIMULATOR_H__
 
 #include "base_memory.h"
 #include "pipe.h"
@@ -53,4 +53,4 @@ public:
 
 };
 
-#endif /* SRC_SIMULATOR_H_ */
+#endif

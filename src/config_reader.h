@@ -4,8 +4,8 @@
  * PSU
  */
 
-#ifndef CONFIG_READER_H_
-#define CONFIG_READER_H_
+#ifndef __CONFIG_READER_H__
+#define __CONFIG_READER_H__
 
 #include <iostream>
 
@@ -31,4 +31,4 @@ public:
 	Json::Value& getValue(std::string key);
 };
 
-#endif /* CONFIG_READER */
+#endif

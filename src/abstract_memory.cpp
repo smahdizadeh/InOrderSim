@@ -6,7 +6,8 @@
 
 #include "abstract_memory.h"
 
-AbstractMemory::AbstractMemory() {
+AbstractMemory::AbstractMemory(uint32_t delay, uint32_t reqQueueCapacity) :
+		accessDelay(delay), reqQueueCapacity(reqQueueCapacity) {
 
 }
 

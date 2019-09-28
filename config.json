@@ -9,6 +9,5 @@
 	"repl_policy_l2": 0,
 	"access_delay_l1": 2,
 	"access_delay_l2": 2,
-	"read_delay_mem": 2,
-	"write_delay_mem": 2
+	"memDelay": 2
 }

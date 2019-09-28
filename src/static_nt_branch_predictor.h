@@ -7,9 +7,9 @@
 #ifndef SRC_STATIC_NT_BRANCH_PREDICTOR_H_
 #define SRC_STATIC_NT_BRANCH_PREDICTOR_H_
 
-#include "abstarct_branch_predictor.h"
+#include "abstract_branch_predictor.h"
 
-class StaticNTBranchPredictor: public AbstarctBranchPredictor {
+class StaticNTBranchPredictor: public AbstractBranchPredictor {
 public:
 	StaticNTBranchPredictor();
 	virtual ~StaticNTBranchPredictor();
