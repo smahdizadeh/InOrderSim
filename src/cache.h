@@ -1,35 +1,58 @@
-#ifndef CACHE
-#define CACHE
+/*
+ * Computer Architecture CSE530
+ * MIPS pipeline cycle-accurate simulator
+ * PSU
+ */
+
+#ifndef __CACHE_H__
+#define __CACHE_H__
 
 #include "block.h"
+#include "abstract_memory.h"
+#include "abstract_prefetcher.h"
+#include "repl_policy.h"
 #include <cstdint>
 
-class ReplPolicy;
-
-//Cache interface for implementation of simulator
-class Cache : public AbstractMemory
-{
-private:
-    //Pointer to an array of block pointers 
-    Block **blocks;
-    ReplPolicy *policy;
-    Prefetcher *prefetcher;
-    uint64_t cSize, associativity, blkSize, numSets;
-    uint32_t delay;
-    Block *currentBlock;
+/*
+ * You should implement MSHR
+ */
+class MSHR {
 public:
-    Cache(uint64_t ucSize, uint64_t uassociativity, uint64_t ublkSize, enum ureplPolicy, uint32_t delay);
-    virtual ~Cache();
-
-    virtual void makeCacheAllocation();
-    bool checkIfBlockPresent(uint64_t addr);
-
-    virtual uint32_t read(uint32_t addr, uint32_t size, uint8_t* data);
-    virtual uint32_t write(uint32_t addr, uint32_t size, uint8_t data);
-
-    virtual uint64_t getAssociativity();
-    virtual uint64_t getNumSets();
-    virtual uint64_t getBlockSize();
-    virtual Block** getCacheBlock();
+	MSHR();
+	virtual ~MSHR();
 };
 
+/*
+ * You should implement Cache
+ */
+class Cache: public AbstractMemory {
+private:
+	AbstarctReplacementPolicy *replPolicy;
+	AbstractPrefetcher* prefetcher;
+	MSHR* mshr;
+	uint64_t cSize, associativity, blkSize, numSets;
+
+public:
+	//Pointer to an array of block pointers
+	Block ***blocks;
+	Cache(uint32_t _Size, uint32_t _associativity, uint32_t _blkSize,
+			enum ReplacementPolicy _replPolicy, uint32_t _delay);
+	virtual ~Cache();
+	virtual bool sendReq(Packet * pkt) override;
+	virtual void recvResp(Packet* readRespPkt) override;
+	virtual void Tick() override;
+	int getWay(uint32_t addr);
+	virtual uint32_t getAssociativity();
+	virtual uint32_t getNumSets();
+	virtual uint32_t getBlockSize();
+	/*
+	 * read the data if it is in the cache. If it is not, read from memory.
+	 * this is not a normal read operation, this is for debug, do not use
+	 * mshr for implementing this
+	 */
+	virtual void dumpRead(uint32_t addr, uint32_t size, uint8_t* data) override;
+	//place other functions here if necessary
+
+};
+
+#endif

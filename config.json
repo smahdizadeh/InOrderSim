@@ -9,5 +9,10 @@
 	"repl_policy_l2": 0,
 	"access_delay_l1": 2,
 	"access_delay_l2": 2,
-	"memDelay": 2
+	"memDelay": 2,
+	"debugMemory": false,
+	"debugPipe": false,
+	"debugCache": false,
+	"debugPrefetch": false,
+	"debugAll": false
 }

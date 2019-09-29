@@ -13,7 +13,7 @@
 
 BaseMemory::BaseMemory(uint32_t memDelay) :
 		AbstractMemory(memDelay, 100) {
-	/* memory will be dynamically allocated at initialization */
+	//memory will be dynamically allocated at initialization
 	MEM_REGIONS[0] = {MEM_TEXT_START, MEM_TEXT_SIZE, nullptr};
 	MEM_REGIONS[1] = {MEM_DATA_START, MEM_DATA_SIZE, nullptr};
 	MEM_REGIONS[2] = {MEM_STACK_START, MEM_STACK_SIZE, nullptr};
@@ -27,23 +27,39 @@ BaseMemory::BaseMemory(uint32_t memDelay) :
 }
 
 BaseMemory::~BaseMemory() {
-	// TODO Auto-generated destructor stub
 	for (int i = 0; i < MEM_NREGIONS; i++)
 		free(MEM_REGIONS[i].mem);
 }
 
 bool BaseMemory::sendReq(Packet * pkt) {
-	std::cerr << currCycle << " request received : " << std::hex << pkt->addr <<
-			std::dec << " " << pkt->size << " " << pkt->type <<
-			" " << pkt->ready_time << "\n";
+	DPRINTF(DEBUG_MEMORY,
+			"request for main memory for pkt : addr = %x, type = %d\n",
+			pkt->addr, pkt->type);
+
 	mem_region_t* mem_region = getMemRegion(pkt->addr, pkt->size);
+
+	//if the accessed memory region is valid
 	if (mem_region) {
+		//update the time to service the packet
 		pkt->ready_time += accessDelay;
-		std::cerr << "Packet is added to memory reqQueue "
-				"with readyTime : " << pkt->ready_time << "\n";
-		reqQueue.push(pkt);
-		return true;
+		DPRINTF(DEBUG_MEMORY,
+				"packet is added to memory reqQueue with readyTime %d\n",
+				pkt->ready_time);
+		//add the packet to request queue if it has free entry
+		if (reqQueue.size() < reqQueueCapacity) {
+			reqQueue.push(pkt);
+			//return true since memory received the request successfully
+			return true;
+		} else {
+			/*
+			 * return false since memory could not add the packet
+			 * to request queue, the source of packet should retry
+			 */
+			return false;
+		}
+
 	} else {
+		//access to invalid region of memory
 		for (int i = 0; i < MEM_NREGIONS; i++) {
 			std::cerr << "MemoryRegion #" << i << " : " << std::hex
 					<< MEM_REGIONS[i].start << " "
@@ -51,7 +67,8 @@ bool BaseMemory::sendReq(Packet * pkt) {
 					<< "\n";
 		}
 		std::cerr << "Access to a unallocated region of memory : addr : "
-				<< std::hex << pkt->addr << " " << pkt->addr + pkt->size << std::dec << "\n";
+				<< std::hex << pkt->addr << " " << pkt->addr + pkt->size
+				<< std::dec << "\n";
 		assert(false);
 	}
 }
@@ -74,44 +91,66 @@ BaseMemory::getMemRegion(uint32_t addr, uint32_t size) {
 }
 
 void BaseMemory::Tick() {
-	std::cerr << currCycle << " BaseMemory::Tick()\n";
 	while (!reqQueue.empty()) {
+		//check if any packet is ready to be serviced
 		if (reqQueue.front()->ready_time <= currCycle) {
 			Packet* respPkt = reqQueue.front();
 			reqQueue.pop();
-			std::cerr << "sending response of packet : " <<
-					std::hex << respPkt->addr << std::dec <<
-					" " << respPkt->ready_time << "\n";
+			DPRINTF(DEBUG_MEMORY,
+					"main memory send respond for pkt: addr = %x, ready_time = %d\n",
+					respPkt->addr, respPkt->ready_time);
 			if (respPkt->isWrite) {
 				mem_region_t* mem_region = getMemRegion(respPkt->addr,
 						respPkt->size);
 				int index = respPkt->addr - mem_region->start;
+				//perform the write in the memory
 				for (uint32_t i = 0; i < respPkt->size; i++) {
 					mem_region->mem[index + i] = *(respPkt->data + i);
 				}
+				//change this pkt to respond pkt
 				respPkt->isReq = false;
+				//the data part is no longer needed
 				delete respPkt->data;
 				respPkt->data = nullptr;
+				/*
+				 * send the respond to the previous base_object which is waiting
+				 * for this respond packet. For now, prev for memory is core but
+				 * you should update the prev since you are adding the caches
+				 */
 				prev->recvResp(respPkt);
 			} else {
 				mem_region_t* mem_region = getMemRegion(respPkt->addr,
 						respPkt->size);
 				int index = respPkt->addr - mem_region->start;
+				//perform the read
 				for (uint32_t i = 0; i < respPkt->size; i++) {
 					*(respPkt->data + i) = mem_region->mem[index + i];
 				}
 				respPkt->isReq = false;
+				/*
+				 * send the respond to the previous base_object which is waiting
+				 * for this respond packet. For now, prev for memory is core but
+				 * you should update the prev since you are adding the caches
+				 */
 				prev->recvResp(respPkt);
 			}
-		}
-		else {
-			// Assumed that reqQueue is sorted by ready_time
+		} else {
+			/*
+			 * assume that reqQueue is sorted by ready_time for now
+			 * (because the pipeline is in-order)
+			 */
 			break;
 		}
 	}
 	return;
 }
 
+/*
+ * you should use this function and implement a similar
+ * functionality for this function in the Cache. This read
+ * operation is only for debug so avoid using mshr for this
+ * function
+ */
 void BaseMemory::dumpRead(uint32_t addr, uint32_t size, uint8_t* data) {
 	mem_region_t* mem_region = getMemRegion(addr, size);
 	int index = addr - mem_region->start;

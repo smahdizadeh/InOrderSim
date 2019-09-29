@@ -17,7 +17,10 @@ Simulator::Simulator(MemHrchyInfo* info) {
 	//initializing core
 	pipe = new PipeState();
 
-	//initializing memory hierarchy
+	/*
+	 * initializing memory hierarchy
+	 *  you should update this for adding the caches
+	 */
 	main_memory = new BaseMemory(info->memDelay);
 	main_memory->next = nullptr;
 
@@ -29,12 +32,19 @@ Simulator::Simulator(MemHrchyInfo* info) {
 	pipe->inst_mem = main_memory;
 }
 
+
+
 void Simulator::cycle() {
+	//check if memory needs to respond to any packet in this cycle
 	main_memory->Tick();
+	//progress of the pipeline in this clock
 	pipe->pipeCycle();
 	pipe->stat_cycles++;
+	// increment the global clock of the simulator
 	currCycle++;
 }
+
+
 
 void Simulator::run(int num_cycles) {
 	int i;
@@ -53,6 +63,7 @@ void Simulator::run(int num_cycles) {
 	}
 }
 
+
 void Simulator::go() {
 	if (pipe->RUN_BIT == false) {
 		printf("Can't simulate, Simulator is halted\n\n");
@@ -65,8 +76,11 @@ void Simulator::go() {
 	printf("Simulator halted\n\n");
 }
 
+
+
 uint32_t Simulator::readMemForDump(uint32_t address) {
 	uint32_t data;
+	//you should update this since adding the caches
 	pipe->data_mem->dumpRead(address, 4, (uint8_t*) &data);
 	return data;
 }
@@ -98,7 +112,6 @@ void Simulator::memDump(int start, int stop) {
 	for (address = start; address < stop; address += 4) {
 		printf("MEM: 0x%08x <- 0x%08x (%d)\n", readMemForDump(address), address,
 				address);
-//	  printf("MEM: 0x%08x\n", readMemForDump(address));
 	}
 	printf("\n");
 }

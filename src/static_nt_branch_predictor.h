@@ -8,7 +8,9 @@
 #define SRC_STATIC_NT_BRANCH_PREDICTOR_H_
 
 #include "abstract_branch_predictor.h"
-
+/*
+ * Static Not-Taken branch predictor
+ */
 class StaticNTBranchPredictor: public AbstractBranchPredictor {
 public:
 	StaticNTBranchPredictor();

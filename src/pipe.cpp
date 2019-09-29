@@ -15,8 +15,6 @@
 #include <cassert>
 #include "util.h"
 
-//#define DEBUG
-
 /* debug */
 void printOp(Pipe_Op *op) {
 	if (op)
@@ -36,12 +34,13 @@ PipeState::PipeState() :
 				0), LO(0), branch_recover(0), branch_dest(0), branch_flush(0), RUN_BIT(
 				true), stat_cycles(0), stat_inst_retire(0), stat_inst_fetch(0), stat_squash(
 				0) {
-//	fetch_op = (Pipe_Op *)malloc(sizeof(Pipe_Op));
-//	memset(fetch_op, 0, sizeof(Pipe_Op));
+	//initialize the register file
 	for (int i = 0; i < 32; i++) {
 		REGS[i] = 0;
 	}
+	//initialize PC
 	PC = 0x00400000;
+	//initialize the branch predictor
 	BP = new StaticNTBranchPredictor();
 }
 
@@ -60,14 +59,18 @@ PipeState::~PipeState() {
 }
 
 void PipeState::pipeCycle() {
-#ifdef DEBUG
-	printf("\n\n----\n\nPIPELINE:\n");
-	printf("DCODE: "); print_op(pipe.decode_op);
-	printf("EXEC : "); print_op(pipe.execute_op);
-	printf("MEM  : "); print_op(pipe.mem_op);
-	printf("WB   : "); print_op(pipe.wb_op);
-	printf("\n");
-#endif
+	if (DEBUG_PIPE) {
+		printf("\n\n----\n\nPIPELINE:\n");
+		printf("DECODE: ");
+		printOp(decode_op);
+		printf("EXEC : ");
+		printOp(execute_op);
+		printf("MEM  : ");
+		printOp(mem_op);
+		printf("WB   : ");
+		printOp(wb_op);
+		printf("\n");
+	}
 
 	pipeStageWb();
 //    if(RUN_BIT == false)
@@ -77,11 +80,10 @@ void PipeState::pipeCycle() {
 	pipeStageDecode();
 	pipeStageFetch();
 
-	/* handle branch recoveries */
+	//handle branch recoveries
 	if (branch_recover) {
-#ifdef DEBUG
-		printf("branch recovery: new dest %08x flush %d stages\n", pipe.branch_dest, pipe.branch_flush);
-#endif
+		DPRINTF(DEBUG_PIPE, "branch recovery: new dest %08x flush %d stages\n",
+				branch_dest, branch_flush);
 
 		PC = branch_dest;
 
@@ -106,7 +108,7 @@ void PipeState::pipeCycle() {
 		if (branch_flush >= 4) {
 			if (mem_op)
 				free(mem_op);
-//            memory_stall = 0;
+
 			mem_op = nullptr;
 		}
 
@@ -130,31 +132,27 @@ void PipeState::pipeRecover(int flush, uint32_t dest) {
 	 * our recovery. Simply return in this case. */
 	if (branch_recover)
 		return;
-	/* schedule the recovery. This will be done once all pipeline stages simulate the current cycle. */
+	//schedule the recovery. This will be done once all pipeline stages simulate the current cycle.
 	branch_recover = 1;
 	branch_flush = flush;
 	branch_dest = dest;
 }
 
 void PipeState::pipeStageWb() {
-	/* if there is no instruction in this pipeline stage, we are done */
+	//if there is no instruction in this pipeline stage, we are done
 	if (!wb_op)
 		return;
-
-	std::cerr << currCycle << " writeback instruction #" <<
-			std::hex << wb_op->pc << std::dec << ":\n";
-	/* grab the op out of our input slot */
+	//grab the op out of our input slot
 	Pipe_Op *op = wb_op;
 	wb_op = NULL;
 
-	/* if this instruction writes a register, do so now */
+	//if this instruction writes a register, do so now
 	if (op->reg_dst != -1 && op->reg_dst != 0) {
 		REGS[op->reg_dst] = op->reg_dst_value;
-#ifdef DEBUG
-		printf("R%d = %08x\n", op->reg_dst, op->reg_dst_value);
-#endif
+
+		DPRINTF(DEBUG_PIPE, "R%d = %08x\n", op->reg_dst, op->reg_dst_value);
 	}
-	/* if this was a syscall, perform action */
+	//if this was a syscall, perform action
 	if (op->opcode == OP_SPECIAL && op->subop == SUBOP_SYSCALL) {
 		if (op->reg_src1_value == 0xA) {
 			PC = op->pc; /* fetch will do pc += 4, then we stop with correct PC */
@@ -162,37 +160,37 @@ void PipeState::pipeStageWb() {
 		}
 	}
 
-	/* free the op */
+	//free the op
 	free(op);
-
 	stat_inst_retire++;
 }
 
 void PipeState::pipeStageMem() {
-	/* grab the op out of our input slot */
+	//grab the op out of our input slot
 	Pipe_Op *op = mem_op;
 
-	/* if there is no instruction in this pipeline stage, we are done */
+	//if there is no instruction in this pipeline stage, we are done
 	if (!op)
 		return;
 	else {
 		if (op->is_mem == false) {
-			std::cerr << currCycle << " clearing mem state #" <<
-					std::hex << mem_op->pc << std::dec << "\n";
+//			DPRINTF(DEBUG_PIPE, "clearing memory stage for instruction %x\n",
+//					mem_op->pc);
 			mem_op = NULL;
 			wb_op = op;
 			return;
 		}
 		if (op->memTried == true) {
-			if(op->waitOnPktIssue) {
+			if (op->waitOnPktIssue) {
 				op->waitOnPktIssue = !(data_mem->sendReq(op->memPkt));
 				return;
 			}
-			if(op->readyForNextStage == false)
+			if (op->readyForNextStage == false)
 				return;
 			else {
-				std::cerr << currCycle << " clearing mem state #" <<
-						std::hex << mem_op->pc << std::dec << "\n";
+//				DPRINTF(DEBUG_PIPE,
+//						"clearing memory stage for instruction %x\n",
+//						mem_op->pc);
 				Pipe_Op* op = mem_op;
 				mem_op = NULL;
 				wb_op = op;
@@ -202,18 +200,15 @@ void PipeState::pipeStageMem() {
 	}
 	op->readyForNextStage = false;
 	op->memTried = true;
-	std::cerr << currCycle << " memory stage #" << std::hex << op->pc << ": " << std::hex << op->instruction <<
-			std::dec << "\n";
 	switch (op->opcode) {
 	case OP_LW:
 	case OP_LH:
 	case OP_LHU:
 	case OP_LB:
-	case OP_LBU:
-	{
+	case OP_LBU: {
 		uint8_t* data = new uint8_t[4];
-		op->memPkt = new Packet(true, false, PacketTypeLoad, (op->mem_addr & ~3),
-				4, data, currCycle);
+		op->memPkt = new Packet(true, false, PacketTypeLoad,
+				(op->mem_addr & ~3), 4, data, currCycle);
 		break;
 	}
 	case OP_SB: {
@@ -227,7 +222,7 @@ void PipeState::pipeStageMem() {
 		uint16_t* data = new uint16_t;
 		*data = op->mem_value & 0xFFFF;
 		op->memPkt = new Packet(true, true, PacketTypeStore, (op->mem_addr), 2,
-				(uint8_t*)data, currCycle);
+				(uint8_t*) data, currCycle);
 		break;
 	}
 
@@ -235,38 +230,34 @@ void PipeState::pipeStageMem() {
 		uint32_t* data = new uint32_t;
 		*data = op->mem_value;
 		op->memPkt = new Packet(true, true, PacketTypeStore, (op->mem_addr), 4,
-				(uint8_t*)data, currCycle);
+				(uint8_t*) data, currCycle);
 		break;
 	}
 	}
-	std::cerr << currCycle << " sending packet from core : " << std::hex <<
-			op->memPkt->addr << std::dec << " " <<
-			op->memPkt->size << " " << op->memPkt->type <<
-			" " << op->memPkt->ready_time << "\n";
+	DPRINTF(DEBUG_PIPE,
+			"sending pkt from memory stage: addr = %x, size = %d, type = %d \n",
+			op->memPkt->addr, op->memPkt->size, op->memPkt->type);
 	op->waitOnPktIssue = !(data_mem->sendReq(op->memPkt));
-	std::cerr << "op->waitOnPktIssue : " << op->waitOnPktIssue << "\n";
 	return;
 }
 
 void PipeState::pipeStageExecute() {
-	/* if a multiply/divide is in progress, decrement cycles until value is ready */
+	//if a multiply/divide is in progress, decrement cycles until value is ready
 	if (execute_op && execute_op->stall > 0)
 		execute_op->stall--;
 
-	/* if downstream stall, return (and leave any input we had) */
+	//if downstream stall, return (and leave any input we had)
 	if (mem_op != NULL)
 		return;
 
-	/* if no op to execute, return */
+	//if no op to execute, return
 	if (execute_op == NULL)
 		return;
 
-	std::cerr << currCycle << " executing instruction #" <<
-			std::hex << execute_op->pc << std::dec << ":\n";
-	/* grab op and read sources */
+	//grab op and read sources
 	Pipe_Op *op = execute_op;
 
-	/* read register values, stall if necessary */
+	//read register values, stall if necessary
 	int stall = 0;
 	if (op->reg_src1 != -1) {
 		if (op->reg_src1 == 0)
@@ -289,10 +280,10 @@ void PipeState::pipeStageExecute() {
 			op->reg_src2_value = REGS[op->reg_src2];
 	}
 
-	/* if requires a stall return without clearing stage input */
+	//if requires a stall return without clearing stage input
 	if (stall)
 		return;
-	/* execute the op */
+	//execute the op
 	switch (op->opcode) {
 	case OP_SPECIAL:
 		op->reg_dst_value_ready = 1;
@@ -337,7 +328,7 @@ void PipeState::pipeStageExecute() {
 			HI = (uval >> 32) & 0xFFFFFFFF;
 			LO = (uval >> 0) & 0xFFFFFFFF;
 
-			/* four-cycle multiplier latency */
+			//four-cycle multiplier latency
 			op->stall = 4;
 		}
 			break;
@@ -347,7 +338,7 @@ void PipeState::pipeStageExecute() {
 			HI = (val >> 32) & 0xFFFFFFFF;
 			LO = (val >> 0) & 0xFFFFFFFF;
 
-			/* four-cycle multiplier latency */
+			//four-cycle multiplier latency
 			op->stall = 4;
 		}
 			break;
@@ -365,11 +356,11 @@ void PipeState::pipeStageExecute() {
 				LO = div;
 				HI = mod;
 			} else {
-				// really this would be a div-by-0 exception
+				//really this would be a div-by-0 exception
 				HI = LO = 0;
 			}
 
-			/* 32-cycle divider latency */
+			//2-cycle divider latency
 			op->stall = 32;
 			break;
 
@@ -396,7 +387,7 @@ void PipeState::pipeStageExecute() {
 			op->reg_dst_value = HI;
 			break;
 		case SUBOP_MTHI:
-			/* stall to respect WAW dependence */
+			//stall to respect WAW dependence
 			if (op->stall > 0)
 				return;
 
@@ -404,14 +395,14 @@ void PipeState::pipeStageExecute() {
 			break;
 
 		case SUBOP_MFLO:
-			/* stall until value is ready */
+			//stall until value is ready
 			if (op->stall > 0)
 				return;
 
 			op->reg_dst_value = LO;
 			break;
 		case SUBOP_MTLO:
-			/* stall to respect WAW dependence */
+			//stall to respect WAW dependence
 			if (op->stall > 0)
 				return;
 
@@ -534,31 +525,31 @@ void PipeState::pipeStageExecute() {
 		break;
 	}
 
-	/* handle branch recoveries at this point */
+	//update the branch predictor metadata
+	BP->update(op->pc, op->branch_taken, op->branch_dest);
+	//handle branch recoveries at this point
 	if (op->branch_taken)
 		pipeRecover(3, op->branch_dest);
 
-	/* remove from upstream stage and place in downstream stage */
+	//remove from upstream stage and place in downstream stage
 	execute_op = NULL;
 	mem_op = op;
 }
 
 void PipeState::pipeStageDecode() {
-	/* if downstream stall, return (and leave any input we had) */
+	//if downstream stall, return (and leave any input we had)
 	if (execute_op != NULL)
 		return;
 
-	/* if no op to decode, return */
+	//if no op to decode, return
 	if (decode_op == NULL)
 		return;
 
-	std::cerr << currCycle << " decoding instruction #" <<
-			std::hex << decode_op->pc << ":\n";
-	/* grab op and remove from stage input */
+	//grab op and remove from stage input
 	Pipe_Op *op = decode_op;
 	decode_op = NULL;
 
-	/* set up info fields (source/dest regs, immediate, jump dest) as necessary */
+	//set up info fields (source/dest regs, immediate, jump dest) as necessary
 	uint32_t opcode = (op->instruction >> 26) & 0x3F;
 	uint32_t rs = (op->instruction >> 21) & 0x1F;
 	uint32_t rt = (op->instruction >> 16) & 0x1F;
@@ -595,7 +586,7 @@ void PipeState::pipeStageDecode() {
 		break;
 
 	case OP_BRSPEC:
-		/* branches that have -and-link variants come here */
+		//branches that have -and-link variants come here
 		op->is_branch = 1;
 		op->reg_src1 = rs;
 		op->reg_src2 = rt;
@@ -616,7 +607,7 @@ void PipeState::pipeStageDecode() {
 		op->reg_dst_value = op->pc + 4;
 		op->reg_dst_value_ready = 1;
 		op->branch_taken = 1;
-		/* fallthrough */
+		//fallthrough
 	case OP_J:
 		op->is_branch = 1;
 		op->branch_cond = 0;
@@ -628,7 +619,7 @@ void PipeState::pipeStageDecode() {
 	case OP_BNE:
 	case OP_BLEZ:
 	case OP_BGTZ:
-		/* ordinary conditional branches (resolved after execute) */
+		//ordinary conditional branches (resolved after execute)
 		op->is_branch = 1;
 		op->branch_cond = 1;
 		op->branch_dest = op->pc + 4 + (se_imm16 << 2);
@@ -640,7 +631,7 @@ void PipeState::pipeStageDecode() {
 	case OP_ADDIU:
 	case OP_SLTI:
 	case OP_SLTIU:
-		/* I-type ALU ops with sign-extended immediates */
+		//I-type ALU ops with sign-extended immediates
 		op->reg_src1 = rs;
 		op->reg_dst = rt;
 		break;
@@ -649,7 +640,7 @@ void PipeState::pipeStageDecode() {
 	case OP_ORI:
 	case OP_XORI:
 	case OP_LUI:
-		/* I-type ALU ops with non-sign-extended immediates */
+		//I-type ALU ops with non-sign-extended immediates
 		op->reg_src1 = rs;
 		op->reg_dst = rt;
 		break;
@@ -662,42 +653,47 @@ void PipeState::pipeStageDecode() {
 	case OP_SW:
 	case OP_SH:
 	case OP_SB:
-		/* memory ops */
+		//memory ops
 		op->is_mem = 1;
 		op->reg_src1 = rs;
 		if (opcode == OP_LW || opcode == OP_LH || opcode == OP_LHU
 				|| opcode == OP_LB || opcode == OP_LBU) {
-			/* load */
+			//load
 			op->mem_write = 0;
 			op->reg_dst = rt;
 		} else {
-			/* store */
+			//store
 			op->mem_write = 1;
 			op->reg_src2 = rt;
 		}
 		break;
 	}
 
-	/* we will handle reg-read together with bypass in the execute stage */
-
-	/* place op in downstream slot */
+	// place op in downstream slot
 	execute_op = op;
 }
 
 void PipeState::pipeStageFetch() {
-	/* if pipeline is stalled (our output slot is not empty), return */
+	//if pipeline is stalled (our output slot is not empty), return
 	if (decode_op != NULL)
 		return;
 
 	if (fetch_op != NULL) {
 		if (fetch_op->isFetchIssued == false) {
+			//if sending the packet was unsuccessful before, try again
 			fetch_op->isFetchIssued = inst_mem->sendReq(fetch_op->instFetchPkt);
 			return;
 		}
-		if(fetch_op->readyForNextStage == false)
+		if (fetch_op->readyForNextStage == false)
 			return;
 		else {
-			PC = BP->getTarget(PC);
+			//get the next instruction to fetch from branch predictor
+			uint32_t target = BP->getTarget(PC);
+			if (target == -1) {
+				PC = PC + 4;
+			} else {
+				PC = target;
+			}
 			decode_op = fetch_op;
 			fetch_op = nullptr;
 			stat_inst_fetch++;
@@ -710,13 +706,12 @@ void PipeState::pipeStageFetch() {
 
 	fetch_op->reg_src1 = fetch_op->reg_src2 = fetch_op->reg_dst = -1;
 	fetch_op->pc = PC;
-	std::cerr << currCycle << " fetching next instruction : " <<
-			std::hex << PC << std::dec << ":\n";
 	uint8_t* data = new uint8_t[4];
 	fetch_op->instFetchPkt = new Packet(true, false, PacketTypeFetch, PC, 4,
 			data, currCycle);
-	std::cerr << currCycle << " sending fetch request from core to memory : " <<
-			std::hex << PC << std::dec << "\n";
+	DPRINTF(DEBUG_PIPE, "sending pkt from fetch stage with addr %x \n: ",
+			fetch_op->instFetchPkt->addr);
+	//try to send the memory request
 	fetch_op->isFetchIssued = inst_mem->sendReq(fetch_op->instFetchPkt);
 }
 
@@ -726,20 +721,22 @@ bool PipeState::sendReq(Packet* pkt) {
 }
 
 void PipeState::recvResp(Packet* pkt) {
-	std::cerr << currCycle << " core recieved a response for : " << std::hex <<
-			pkt->addr << std::dec << " " << pkt->type << "\n";
+	DPRINTF(DEBUG_PIPE,
+			"core received a response for pkt : addr = %x, type = %d\n",
+			pkt->addr, pkt->type);
 	switch (pkt->type) {
 	case PacketTypeFetch:
+		//if the pkt-type is fetch proceed with fetching the instruction
 		if (PC == pkt->addr && pkt->size == 4) {
 			fetch_op->instruction = *((uint32_t*) pkt->data);
 			fetch_op->readyForNextStage = true;
-		} else
-			assert(false && "Invalid response from memory or cache");
+		}
 		break;
 	case PacketTypeLoad: {
+		//if pkt-type is load proceed with loading the data
 		if (((mem_op->mem_addr & ~3) == pkt->addr) && pkt->size == 4) {
 			uint32_t val = *((uint32_t*) pkt->data);
-			/* extract needed value */
+			//extract needed value
 			mem_op->reg_dst_value_ready = 1;
 			if (mem_op->opcode == OP_LW) {
 				mem_op->reg_dst_value = val;
@@ -776,23 +773,19 @@ void PipeState::recvResp(Packet* pkt) {
 
 				mem_op->reg_dst_value = val;
 			}
-			std::cerr << currCycle << " recieved response for load #" <<
-					std::hex << pkt->addr << std::dec << "\n";
 			mem_op->readyForNextStage = true;
 		}
 		break;
 	}
 	case PacketTypeStore:
-		std::cerr << "mem_op->mem_addr " << std::hex <<
-			mem_op->mem_addr << std::dec << "\n";
-		if ((mem_op->mem_addr & ~3) == pkt->addr) {
+		if (mem_op->mem_addr == pkt->addr) {
 			mem_op->readyForNextStage = true;
 		} else {
-			assert(false && "Invalid response from memory or cache");
+			assert(false && "Invalid store response from memory or cache");
 		}
 		break;
 	default:
-		assert(false && "Invalid packet type recieved in Core");
+		assert(false && "Invalid response from memory or cache");
 	}
 	delete pkt;
 }

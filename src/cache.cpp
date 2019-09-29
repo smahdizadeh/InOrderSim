@@ -1,94 +1,97 @@
-#include "cache.h"
-#include "repl_policy.h"
+/*
+ * Computer Architecture CSE530
+ * MIPS pipeline cycle-accurate simulator
+ * PSU
+ */
+
 #include <cstdlib>
+#include "repl_policy.h"
+#include "next_line_prefetcher.h"
+#include "cache.h"
 
-Cache :: Cache(uint64_t ucSize, uint64_t uassociativity, uint64_t ublkSize, enum ureplPolicy, uint32_t udelay)
-{
-    cSize = ucSize;
-    associativity = uassociativity;
-    blkSize = ublkSize;
-    replPolicy = ureplPolicy;
-    delay = udelay;
-    currentBlock = NULL;
+Cache::Cache(uint32_t size, uint32_t associativity, uint32_t blkSize,
+		enum ReplacementPolicy replType, uint32_t delay):
+		AbstractMemory(delay, 100),cSize(size),
+		associativity(associativity), blkSize(blkSize) {
+
+	numSets = cSize / (blkSize * associativity);
+	blocks = new Block**[numSets];
+	for (int i = 0; i < (int) numSets; i++) {
+		blocks[i] = new Block*[associativity];
+		for (int j = 0; j < associativity; j++)
+			blocks[i][j] = new Block(blkSize);
+	}
+
+	switch (replType) {
+	case RandomReplPolicy:
+		replPolicy = new RandomRepl(this);
+		break;
+	default:
+		assert(false && "Unknown Replacement Policy");
+	}
+
+	/*
+	 * add other required initialization here
+	 * (e.g: prefetcher and mshr)
+	 */
+
 }
 
-Cache ::~Cache
-{
+Cache::~Cache() {
+	delete replPolicy;
+	for (int i = 0; i < (int) numSets; i++) {
+		for (int j = 0; j < associativity; j++)
+			delete blocks[i][j];
+		delete blocks[i];
+	}
+	delete blocks;
 
 }
 
-void Cache :: makeCacheAllocation()
-{
-    numSets = cSize/(blkSize * associativity);
-    blocks = new Block*[numSets];
-
-    for (int i = 0; i < (int) numSets; i ++)
-    {
-       blocks[i] = new Block[associativity];
-    }
+uint32_t Cache::getAssociativity() {
+	return associativity;
 }
 
-uint64_t Cache :: getAssociativity()
-{
-  return associativity;
+uint32_t Cache::getNumSets() {
+	return numSets;
 }
 
-uint64_t Cache :: getNumSets()
-{
-  return numSets;
+uint32_t Cache::getBlockSize() {
+	return blkSize;
 }
 
-uint64_t Cache :: getBlockSize()
-{
-  return Blksize;
+int Cache::getWay(uint32_t addr) {
+	uint32_t _addr = addr / blkSize;
+	uint32_t setIndex = (numSets - 1) & _addr;
+	uint32_t addrTag = _addr / numSets;
+	for (int i = 0; i < (int) associativity; i++) {
+		if ((blocks[setIndex][i]->getValid() == true)
+				&& (blocks[setIndex][i]->getTag() == addrTag)) {
+			return i;
+		}
+	}
+	return -1;
 }
 
-Block** Cache :: getCacheBlock()
-{
-  return **blocks;
+
+/*You should complete this function*/
+bool Cache::sendReq(Packet * pkt){
+
+	return true;
 }
 
-bool Cache :: checkIfBlockPresent(uint64_t addr)
-{
-    addr = addr / Blksize;
-    
-    uint64_t setIndex = (numSets - 1) & addr;
-    uint64_t addrTag = addr / numSets;
+/*You should complete this function*/
+void Cache::recvResp(Packet* readRespPkt){
 
-    Block* candidateBlock  = blocks[setIndex];
-
-    for (int i = 0; i < (int) associativity; i++)
-        {
-           if ((candidateBlock[i]->getValid() == 1) && (candidateBlock[i]->getTag() == addrTag))
-               {
-                 currentBlock = candidateBlock[i];   
-                 return True;   
-               } 
-        }
-    return False;    
+	return;
 }
 
-uint32_t Cache :: read(uint32_t addr, uint32_t size, uint8_t* data)
-{
-    //in case we are getting a cache hit
-    if (checkIfBlockPresent(addr))
-       {
-           data = currentBlock->getData();
-           return delay;
-       }
-    //goto next level of memory hierarchy in case of cache miss
-    return delay + next->read();
+/*You should complete this function*/
+void Cache::Tick(){
+	return;
 }
 
-uint32_t Cache :: write(uint32_t addr, uint32_t size, uint8_t* data)
-{
-    //in case we are getting a cache hit
-    if (checkIfBlockPresent(addr))
-       {
-           currentBlock->writeData(data);
-           return delay;
-       }
+/*You should complete this function*/
+void Cache::dumpRead(uint32_t addr, uint32_t size, uint8_t* data){
 
-    //goto next level of memory hierarchy in case of cache miss
-    return delay + next->write();
 }

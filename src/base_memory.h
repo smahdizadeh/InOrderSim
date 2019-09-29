@@ -11,6 +11,7 @@
 #include <assert.h>
 #include "abstract_memory.h"
 
+//initializing memory regions
 #define MEM_DATA_START  0x10000000
 #define MEM_DATA_SIZE   0x00100000
 #define MEM_TEXT_START  0x00400000
@@ -28,17 +29,25 @@ typedef struct {
 	uint8_t *mem;
 } mem_region_t;
 
+
+/*
+ * Main memory
+ */
 class BaseMemory: public AbstractMemory {
 public:
 	BaseMemory(uint32_t mem_delay);
 	virtual ~BaseMemory();
 	virtual bool sendReq(Packet * pkt) override;
 	virtual void recvResp(Packet* readRespPkt) override;
-	mem_region_t* getMemRegion(uint32_t addr, uint32_t size);
 	virtual void Tick() override;
-	mem_region_t MEM_REGIONS[MEM_NREGIONS];
-
 	void dumpRead(uint32_t addr, uint32_t size, uint8_t* data);
+	/*
+	 * for the given address and size will return the
+	 * corresponding memory region
+	 */
+	mem_region_t* getMemRegion(uint32_t addr, uint32_t size);
+
+	mem_region_t MEM_REGIONS[MEM_NREGIONS];
 };
 
 #endif

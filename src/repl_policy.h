@@ -1,40 +1,47 @@
-#ifndef REPLACEMENTPOLICY
-#define REPLACEMENTPOLICY
+/*
+ * Computer Architecture CSE530
+ * MIPS pipeline cycle-accurate simulator
+ * PSU
+ */
+
+#ifndef __REPL_POLICY_H__
+#define __REPL_POLICY_H__
+
+#include"block.h"
 
 class Cache;
 
-class ReplacementPolicy
-{
-private:    
-  ReplacementPolicy(Cache* cache);
-  Cache* cache;
-  uint64_t associativity, blkSize, total_sets;
-  
-
+/*
+ * AbstarctReplacementPolicy should be inherited by your
+ * implemented replacement policy
+ */
+class AbstarctReplacementPolicy {
 public:
-  virtual Block* getVictim(uint32_t addr, bool isWrite) = 0;
-  virtual void update(uint32_t addr, bool isWrite) = 0;
-  virtual Block* checkCacheSetFull(uint32_t addr, bool isWrite) = 0;
+	AbstarctReplacementPolicy(Cache* cache);
+	virtual ~AbstarctReplacementPolicy() {}
+	//pointer to the Cache
+	Cache* cache;
+	/*
+	 * should return the victim block based on the replacement
+	 * policy- the caller should invalidate this block
+	 */
+	virtual Block* getVictim(uint32_t addr, bool isWrite) = 0;
+	/*
+	 * Called for both hit and miss.
+	 * Should update the replacement policy metadata.
+	 */
+	virtual void update(uint32_t addr, int way, bool isWrite) = 0;
 };
 
-class LRU : public ReplacementPolicy
-{
-  LRU(Cache* cache);
-  
-  uint64_t total_sets, associativity, blkSize;
-  public:
-    virtual Block* checkCacheSetFull(uint32_t addr, bool isWrite);
-    virtual Block* getVictim(uint32_t addr, bool isWrite);
-    virtual void update(uint32_t addr, bool isWrite);
-}; 
+/*
+ * Random replacement policy
+ */
+class RandomRepl: public AbstarctReplacementPolicy {
+public:
+	RandomRepl(Cache* cache);
+	~RandomRepl() {}
+	virtual Block* getVictim(uint32_t addr, bool isWrite) override;
+	virtual void update(uint32_t addr, int way, bool isWrite) override;
+};
 
-
-class Random : public ReplacementPolicy
-{
-  Random(Cache* cache);
-  uint64_t total_sets, associativity, blkSize;
-  public:
-     virtual Block* checkCacheSetFull(uint32_t addr, bool isWrite);
-
-
-}
+#endif

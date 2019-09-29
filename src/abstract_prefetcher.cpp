@@ -4,14 +4,15 @@
  * PSU
  */
 
-#include "base_object.h"
+#include "abstract_prefetcher.h"
 
-BaseObject::BaseObject() {
+AbstractPrefetcher::AbstractPrefetcher(Cache* cache) :
+		cache(cache){
 	// TODO Auto-generated constructor stub
 
 }
 
-BaseObject::~BaseObject() {
+AbstractPrefetcher::~AbstractPrefetcher() {
 	// TODO Auto-generated destructor stub
 }
 

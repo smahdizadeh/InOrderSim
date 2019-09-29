@@ -78,6 +78,13 @@ MemHrchyInfo* getMemHrchyInfo(char* config_file) {
 	info->access_delay_l1 = msg.getValue("access_delay_l1").asInt();
 	info->access_delay_l2 = msg.getValue("access_delay_l2").asInt();
 	info->memDelay = msg.getValue("memDelay").asInt();
+	DEBUG_MEMORY = msg.getValue("debugMemory").asBool();
+	DEBUG_PIPE = msg.getValue("debugPipe").asBool();
+	DEBUG_CACHE = msg.getValue("debugCache").asBool();
+	DEBUG_PREFETCH = msg.getValue("debugPrefetch").asBool();
+	if (msg.getValue("debugAll").asBool()) {
+		DEBUG_MEMORY = DEBUG_PIPE = DEBUG_CACHE = DEBUG_PREFETCH = true;
+	}
 	return info;
 }
 
