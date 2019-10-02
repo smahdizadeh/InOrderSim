@@ -36,6 +36,9 @@ bool BaseMemory::sendReq(Packet * pkt) {
 			"request for main memory for pkt : addr = %x, type = %d\n",
 			pkt->addr, pkt->type);
 
+	TRACE(TRACE_MEMORY, pkt->type == PacketTypeStore,
+			"mdump 0x%x 0x%x\n", pkt->addr, pkt->addr + pkt->size);
+
 	mem_region_t* mem_region = getMemRegion(pkt->addr, pkt->size);
 
 	//if the accessed memory region is valid

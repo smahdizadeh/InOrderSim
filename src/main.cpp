@@ -66,25 +66,75 @@ MemHrchyInfo* getMemHrchyInfo(char* config_file) {
 	msg.setJson(str);
 	std::cerr << "Config file is read successfully\n";
 	MemHrchyInfo * info = new MemHrchyInfo;
-	info->cache_size_l1 = msg.getValue("cache_size_l1").asInt();
-	info->cache_assoc_l1 = msg.getValue("cache_assoc_l1").asInt();
-	info->cache_size_l2 = msg.getValue("cache_size_l2").asInt();
-	info->cache_assoc_l2 = msg.getValue("cache_assoc_l2").asInt();
-	info->cache_blk_size = msg.getValue("cache_blk_size").asInt();
-	//todo handle enum
-	info->repl_policy_l1d = msg.getValue("repl_policy_l1d").asInt();
-	info->repl_policy_l1i = msg.getValue("repl_policy_l1i").asInt();
-	info->repl_policy_l2 = msg.getValue("repl_policy_l2").asInt();
-	info->access_delay_l1 = msg.getValue("access_delay_l1").asInt();
-	info->access_delay_l2 = msg.getValue("access_delay_l2").asInt();
-	info->memDelay = msg.getValue("memDelay").asInt();
-	DEBUG_MEMORY = msg.getValue("debugMemory").asBool();
-	DEBUG_PIPE = msg.getValue("debugPipe").asBool();
-	DEBUG_CACHE = msg.getValue("debugCache").asBool();
-	DEBUG_PREFETCH = msg.getValue("debugPrefetch").asBool();
-	if (msg.getValue("debugAll").asBool()) {
+
+	if(msg.getValue("cache_size_l1") != Json::nullValue)
+		info->cache_size_l1 = msg.getValue("cache_size_l1").asInt();
+	else
+		std::cerr << "cache_size_l1 is not defined in config.json, using default value : " << info->cache_size_l1 << "\n";
+
+	if(msg.getValue("cache_assoc_l1") != Json::nullValue)
+		info->cache_assoc_l1 = msg.getValue("cache_assoc_l1").asInt();
+	else
+		std::cerr << "cache_assoc_l1 is not defined in config.json, using default value : " << info->cache_assoc_l1 << "\n";
+
+	if(msg.getValue("cache_size_l2") != Json::nullValue)
+		info->cache_size_l2 = msg.getValue("cache_size_l2").asInt();
+	else
+		std::cerr << "cache_size_l2 is not defined in config.json, using default value : " << info->cache_size_l2 << "\n";
+
+	if(msg.getValue("cache_assoc_l2") != Json::nullValue)
+		info->cache_assoc_l2 = msg.getValue("cache_assoc_l2").asInt();
+	else
+		std::cerr << "cache_assoc_l2 is not defined in config.json, using default value : " << info->cache_assoc_l2 << "\n";
+
+	if(msg.getValue("cache_blk_size") != Json::nullValue)
+		info->cache_blk_size = msg.getValue("cache_blk_size").asInt();
+	else
+		std::cerr << "cache_blk_size is not defined in config.json, using default value : " << info->cache_blk_size << "\n";
+
+	if(msg.getValue("repl_policy_l1d") != Json::nullValue)
+		info->repl_policy_l1d = msg.getValue("repl_policy_l1d").asInt();
+	else
+		std::cerr << "repl_policy_l1d is not defined in config.json, using default value : " << info->repl_policy_l1d << "\n";
+
+	if(msg.getValue("repl_policy_l1i") != Json::nullValue)
+		info->repl_policy_l1i = msg.getValue("repl_policy_l1i").asInt();
+	else
+		std::cerr << "repl_policy_l1i is not defined in config.json, using default value : " << info->repl_policy_l1i << "\n";
+
+	if(msg.getValue("repl_policy_l2") != Json::nullValue)
+		info->repl_policy_l2 = msg.getValue("repl_policy_l2").asInt();
+	else
+		std::cerr << "repl_policy_l2 is not defined in config.json, using default value : " << info->repl_policy_l2 << "\n";
+
+	if(msg.getValue("access_delay_l1") != Json::nullValue)
+		info->access_delay_l1 = msg.getValue("access_delay_l1").asInt();
+	else
+		std::cerr << "access_delay_l1 is not defined in config.json, using default value : " << info->access_delay_l1 << "\n";
+
+	if(msg.getValue("access_delay_l2") != Json::nullValue)
+		info->access_delay_l2 = msg.getValue("access_delay_l2").asInt();
+	else
+		std::cerr << "access_delay_l2 is not defined in config.json, using default value : " << info->access_delay_l2 << "\n";
+
+	if(msg.getValue("memDelay") != Json::nullValue)
+		info->memDelay = msg.getValue("memDelay").asInt();
+	else
+		std::cerr << "memDelay is not defined in config.json, using default value : " << info->memDelay << "\n";
+
+	if(msg.getValue("debugMemory") != Json::nullValue)
+		DEBUG_MEMORY = msg.getValue("debugMemory").asBool();
+	if(msg.getValue("debugPipe") != Json::nullValue)
+		DEBUG_PIPE = msg.getValue("debugPipe").asBool();
+	if(msg.getValue("debugCache") != Json::nullValue)
+		DEBUG_CACHE = msg.getValue("debugCache").asBool();
+	if(msg.getValue("debugPrefetch") != Json::nullValue)
+		DEBUG_PREFETCH = msg.getValue("debugPrefetch").asBool();
+	if(msg.getValue("debugAll") != Json::nullValue && msg.getValue("debugAll").asBool())
 		DEBUG_MEMORY = DEBUG_PIPE = DEBUG_CACHE = DEBUG_PREFETCH = true;
-	}
+	if(msg.getValue("traceMemory") != Json::nullValue)
+		TRACE_MEMORY = msg.getValue("traceMemory").asBool();
+
 	return info;
 }
 

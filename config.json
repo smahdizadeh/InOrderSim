@@ -14,5 +14,6 @@
 	"debugPipe": false,
 	"debugCache": false,
 	"debugPrefetch": false,
-	"debugAll": false
+	"debugAll": false,
+	"traceMemory" : false
 }

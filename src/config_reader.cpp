@@ -33,6 +33,6 @@ void ConfigReader::setJson(std::string &str)
 	}
 }
 
-Json::Value& ConfigReader::getValue(std::string key) {
+Json::Value ConfigReader::getValue(std::string key) {
 	return root[key];
 }

@@ -28,7 +28,7 @@ public:
 	ConfigReader();
 	virtual ~ConfigReader();
 	void setJson(std::string &str);
-	Json::Value& getValue(std::string key);
+	Json::Value getValue(std::string key);
 };
 
 #endif

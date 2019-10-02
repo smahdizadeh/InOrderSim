@@ -110,8 +110,7 @@ void Simulator::memDump(int start, int stop) {
 	printf("\nMemory content [0x%08x..0x%08x] :\n", start, stop);
 	printf("-------------------------------------\n");
 	for (address = start; address < stop; address += 4) {
-		printf("MEM: 0x%08x <- 0x%08x (%d)\n", readMemForDump(address), address,
-				address);
+		printf("MEM[0x%08x]: 0x%08x\n", address, readMemForDump(address));
 	}
 	printf("\n");
 }
