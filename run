@@ -56,13 +56,15 @@ def main():
 
         if error == 0:
 	    print "  " + green + "REGISTER AND MEMORY CONTENTS OK" + normal
+	else:
+	    break
 	print
 
 
 def run(config, i):
     global ref, sim
 
-    refproc = subprocess.Popen([ref, config, i], executable=ref, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    refproc = subprocess.Popen([ref, i], executable=ref, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     simproc = subprocess.Popen([sim, config, i], executable=sim, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     cmds = ""

@@ -19,11 +19,11 @@ extern bool TRACE_MEMORY;
 
 #define DPRINTF(flag, fmt, ...) \
 	if(flag) \
-        fprintf(stderr, "Cycle %9lu : [%s][%s]%d: " fmt, currCycle, __FILE__, __func__, __LINE__, ##__VA_ARGS__);
+        fprintf(stdout, "Cycle %9lu : [%s][%s]%d: " fmt, currCycle, __FILE__, __func__, __LINE__, ##__VA_ARGS__);
 
 #define TRACE(flag, cond, fmt, ...) \
 	if((flag) && (cond)) \
-        fprintf(stderr, fmt, ##__VA_ARGS__);
+        fprintf(stdout, fmt, ##__VA_ARGS__);
 
 enum ReplacementPolicy{
 	RandomReplPolicy,

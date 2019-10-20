@@ -60,7 +60,7 @@ PipeState::~PipeState() {
 
 void PipeState::pipeCycle() {
 	if (DEBUG_PIPE) {
-		printf("\n\n----\n\nPIPELINE:\n");
+		printf("\n\n----\nCycle : %lu\nPIPELINE:\n", currCycle);
 		printf("DECODE: ");
 		printOp(decode_op);
 		printf("EXEC : ");
@@ -73,8 +73,8 @@ void PipeState::pipeCycle() {
 	}
 
 	pipeStageWb();
-//    if(RUN_BIT == false)
-//    	return;
+	if(RUN_BIT == false)
+    		return;
 	pipeStageMem();
 	pipeStageExecute();
 	pipeStageDecode();
@@ -687,13 +687,6 @@ void PipeState::pipeStageFetch() {
 		if (fetch_op->readyForNextStage == false)
 			return;
 		else {
-			//get the next instruction to fetch from branch predictor
-			uint32_t target = BP->getTarget(PC);
-			if (target == -1) {
-				PC = PC + 4;
-			} else {
-				PC = target;
-			}
 			decode_op = fetch_op;
 			fetch_op = nullptr;
 			stat_inst_fetch++;
@@ -713,6 +706,13 @@ void PipeState::pipeStageFetch() {
 			fetch_op->instFetchPkt->addr);
 	//try to send the memory request
 	fetch_op->isFetchIssued = inst_mem->sendReq(fetch_op->instFetchPkt);
+	//get the next instruction to fetch from branch predictor
+	uint32_t target = BP->getTarget(PC);
+	if (target == -1) {
+		PC = PC + 4;
+	} else {
+		PC = target;
+	}
 }
 
 bool PipeState::sendReq(Packet* pkt) {
@@ -727,7 +727,7 @@ void PipeState::recvResp(Packet* pkt) {
 	switch (pkt->type) {
 	case PacketTypeFetch:
 		//if the pkt-type is fetch proceed with fetching the instruction
-		if (PC == pkt->addr && pkt->size == 4) {
+		if (fetch_op != nullptr && fetch_op->pc == pkt->addr && pkt->size == 4) {
 			fetch_op->instruction = *((uint32_t*) pkt->data);
 			fetch_op->readyForNextStage = true;
 		}
