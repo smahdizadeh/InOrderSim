@@ -42,16 +42,17 @@ def main():
             s1 = s.split()[1]
 #            print (r1, s1)
 
-            print "  " + r0.ljust(16) + r1.center(16) + s1.center(16),
+	    if (r0[0:3] != "MEM"):
+	            print "  " + r0.ljust(16) + r1.center(16) + s1.center(16),
 
             if (r0 == "Cycles:"):
             	nocheck = 1
-	    if (r0 == "MEM:"):
+	    if (r0[0:3] == "MEM"):
 	    	nocheck = 0
             if (r1 != s1 and nocheck == 0):
 		print "  " + red + "ERROR" + normal
 		error = 1
-	    else:
+	    elif (r0[0:3] != "MEM"):
 	        print
 
         if error == 0:
@@ -64,7 +65,7 @@ def main():
 def run(config, i):
     global ref, sim
 
-    refproc = subprocess.Popen([ref, i], executable=ref, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    refproc = subprocess.Popen([ref, config, i], executable=ref, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     simproc = subprocess.Popen([sim, config, i], executable=sim, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     cmds = ""
